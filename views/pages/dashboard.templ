@@ -146,14 +146,26 @@ templ Dashboard(view dash.ViewData, successMessage string, errorMessage string, 
 							<div class="mt-4 overflow-x-auto">
 								<table class="min-w-full text-left text-xs text-slate-300">
 									<thead class="text-slate-500">
-										<tr><th class="px-2 py-2">App</th><th class="px-2 py-2">Browser ID</th><th class="px-2 py-2">CDP</th><th class="px-2 py-2">Last Active</th></tr>
+										<tr><th class="px-2 py-2">App</th><th class="px-2 py-2">Browser ID</th><th class="px-2 py-2">Connect</th><th class="px-2 py-2">WS URL</th><th class="px-2 py-2">Last Active</th></tr>
 									</thead>
 									<tbody>
 										if len(view.RunningBrowsers) == 0 {
-											<tr><td class="px-2 py-3 text-slate-500" colspan="4">No running browsers.</td></tr>
+											<tr><td class="px-2 py-3 text-slate-500" colspan="5">No running browsers.</td></tr>
 										} else {
 											for _, browser := range view.RunningBrowsers {
-												<tr class="border-t border-slate-800"><td class="px-2 py-2">{ browser.ApplicationName }</td><td class="px-2 py-2 font-mono">{ browser.ExternalBrowserID }</td><td class="px-2 py-2"><a href={ browser.CDPURL } class="text-cyan-300 hover:text-cyan-100" target="_blank">Connect</a></td><td class="px-2 py-2">{ browser.LastActiveAt.Format(time.RFC822) }</td></tr>
+												<tr class="border-t border-slate-800">
+													<td class="px-2 py-2">{ browser.ApplicationName }</td>
+													<td class="px-2 py-2 font-mono">{ browser.ExternalBrowserID }</td>
+													<td class="px-2 py-2">
+														if browser.CDPHTTPURL != "" {
+															<a href={ browser.CDPHTTPURL } class="text-cyan-300 hover:text-cyan-100" target="_blank">Open endpoint</a>
+														} else {
+															<span class="text-slate-500">Unavailable</span>
+														}
+													</td>
+													<td class="px-2 py-2"><span class="font-mono text-[11px] text-slate-400">{ browser.CDPURL }</span></td>
+													<td class="px-2 py-2">{ browser.LastActiveAt.Format(time.RFC822) }</td>
+												</tr>
 											}
 										}
 									</tbody>

@@ -69,13 +69,12 @@ func Bootstrap(config BootstrapConfig) (Server, error) {
 	usersService := users.NewService(store)
 	webAuthorizer := authorization.NewWebAuthorizer()
 	applicationsService := applications.NewService(store, webAuthorizer)
-	dashboardService := dashboard.NewService(store, usersService, applicationsService)
-
 	browserManagerClient, err := browsers.NewHTTPManagerClient(config.CDPManagerBaseURL, nil)
 	if err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("create CDP manager client: %w", err)
 	}
+	dashboardService := dashboard.NewService(store, usersService, applicationsService, browserManagerClient)
 
 	apiAuthorizer := authorization.NewAPIAuthorizer()
 	browserService := browsers.NewService(browserManagerClient, store, apiAuthorizer)
