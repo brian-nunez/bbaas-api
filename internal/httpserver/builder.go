@@ -1,6 +1,8 @@
 package httpserver
 
 import (
+	"fmt"
+
 	"github.com/brian-nunez/bbaas-api/internal/handlers/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -33,15 +35,24 @@ func (b *ServerBuilder) WithRoutes(register func(e *echo.Echo)) *ServerBuilder {
 func (b *ServerBuilder) WithErrorHandler() *ServerBuilder {
 	b.e.HTTPErrorHandler = func(err error, c echo.Context) {
 		code := echo.ErrInternalServerError.Code
+		message := ""
 
 		if he, ok := err.(*echo.HTTPError); ok {
 			code = he.Code
+			if he.Message != nil {
+				message = fmt.Sprint(he.Message)
+			}
 		}
 
 		c.Logger().Error(err)
 
 		if !c.Response().Committed {
-			response := errors.GenerateByStatusCode(code).Build()
+			errorBuilder := errors.GenerateByStatusCode(code)
+			if message != "" {
+				errorBuilder = errorBuilder.WithMessage(message)
+			}
+
+			response := errorBuilder.Build()
 			_ = c.JSON(response.HTTPStatusCode, response)
 		}
 	}

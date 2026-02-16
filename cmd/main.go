@@ -13,19 +13,21 @@ import (
 )
 
 func main() {
-	server := httpserver.Bootstrap(httpserver.BootstrapConfig{
+	port := getenvOrDefault("PORT", "8080")
+	cdpManagerBaseURL := getenvOrDefault("CDP_MANAGER_BASE_URL", "http://127.0.0.1:8081")
+
+	server, err := httpserver.Bootstrap(httpserver.BootstrapConfig{
 		StaticDirectories: map[string]string{
 			"/assets": "./assets",
 		},
+		CDPManagerBaseURL: cdpManagerBaseURL,
 	})
-
-	PORT := os.Getenv("PORT")
-	if PORT == "" {
-		PORT = "8080"
+	if err != nil {
+		log.Fatalf("could not bootstrap server: %v", err)
 	}
 
 	go func() {
-		err := server.Start(fmt.Sprintf(":%s", PORT))
+		err := server.Start(fmt.Sprintf(":%s", port))
 		if err != nil && err.Error() != "http: Server closed" {
 			log.Fatalf("could not start server: %v", err)
 		}
@@ -40,9 +42,18 @@ func main() {
 	defer cancel()
 
 	log.Println("Shutting down server...")
-	err := server.Shutdown(ctx)
+	err = server.Shutdown(ctx)
 	if err != nil {
 		log.Fatalf("Server shutdown failed: %v", err)
 	}
 	log.Println("Server exited cleanly")
+}
+
+func getenvOrDefault(key string, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+
+	return value
 }

@@ -113,7 +113,7 @@ func GenerateByStatusCode(code int) *errorBuilder {
 	case http.StatusUnauthorized:
 		return Unauthorized()
 	case http.StatusNotFound:
-		return NotAllowed()
+		return NotFound()
 	case http.StatusMethodNotAllowed:
 		return NotAllowed()
 	case http.StatusInternalServerError:
@@ -122,5 +122,8 @@ func GenerateByStatusCode(code int) *errorBuilder {
 		return ServiceNotAvailable()
 	}
 
-	return InternalServerError()
+	return Custom().
+		WithStatusCode(code).
+		WithErrorCode(string(ErrInternalServerError)).
+		WithMessage(http.StatusText(code))
 }
