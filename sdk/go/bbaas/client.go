@@ -135,7 +135,7 @@ func (c *Client) KeepAliveBrowser(ctx context.Context, browserID string) (Browse
 }
 
 func (c *Client) CloseBrowser(ctx context.Context, browserID string) error {
-	return c.do(ctx, http.MethodDelete, path.Join("/api/v1/browsers", browserID), nil, true, http.StatusNoContent, nil)
+	return c.do(ctx, http.MethodDelete, path.Join("/api/v1/browsers", browserID), nil, true, http.StatusOK, nil)
 }
 
 func (c *Client) do(ctx context.Context, method string, resourcePath string, requestBody any, requiresAuth bool, expectedStatus int, output any) error {
