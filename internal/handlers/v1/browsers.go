@@ -24,9 +24,9 @@ func NewBrowsersHandler(browserService *browsers.Service) *BrowsersHandler {
 }
 
 func (h *BrowsersHandler) SpawnBrowser(c echo.Context) error {
-	application, ok := getAuthenticatedApplication(c)
+	principal, ok := getAPIKeyPrincipal(c)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "missing authenticated application")
+		return echo.NewHTTPError(http.StatusUnauthorized, "missing API key principal")
 	}
 
 	request, err := decodeSpawnRequest(c)
@@ -35,7 +35,7 @@ func (h *BrowsersHandler) SpawnBrowser(c echo.Context) error {
 		return c.JSON(response.HTTPStatusCode, response)
 	}
 
-	spawnedBrowser, err := h.browserService.SpawnForApplication(c.Request().Context(), application.ID, request)
+	spawnedBrowser, err := h.browserService.SpawnForAPIKey(c.Request().Context(), principal, request)
 	if err != nil {
 		return mapBrowserServiceError(err)
 	}
@@ -44,12 +44,12 @@ func (h *BrowsersHandler) SpawnBrowser(c echo.Context) error {
 }
 
 func (h *BrowsersHandler) ListBrowsers(c echo.Context) error {
-	application, ok := getAuthenticatedApplication(c)
+	principal, ok := getAPIKeyPrincipal(c)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "missing authenticated application")
+		return echo.NewHTTPError(http.StatusUnauthorized, "missing API key principal")
 	}
 
-	availableBrowsers, err := h.browserService.ListForApplication(c.Request().Context(), application.ID)
+	availableBrowsers, err := h.browserService.ListForAPIKey(c.Request().Context(), principal)
 	if err != nil {
 		return mapBrowserServiceError(err)
 	}
@@ -60,12 +60,13 @@ func (h *BrowsersHandler) ListBrowsers(c echo.Context) error {
 }
 
 func (h *BrowsersHandler) GetBrowser(c echo.Context) error {
-	application, ok := getAuthenticatedApplication(c)
+	principal, ok := getAPIKeyPrincipal(c)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "missing authenticated application")
+		return echo.NewHTTPError(http.StatusUnauthorized, "missing API key principal")
 	}
 
-	browser, err := h.browserService.GetForApplication(c.Request().Context(), application.ID, strings.TrimSpace(c.Param("id")))
+	browserID := strings.TrimSpace(c.Param("id"))
+	browser, err := h.browserService.GetForAPIKey(c.Request().Context(), principal, browserID)
 	if err != nil {
 		return mapBrowserServiceError(err)
 	}
@@ -76,12 +77,13 @@ func (h *BrowsersHandler) GetBrowser(c echo.Context) error {
 }
 
 func (h *BrowsersHandler) KeepAliveBrowser(c echo.Context) error {
-	application, ok := getAuthenticatedApplication(c)
+	principal, ok := getAPIKeyPrincipal(c)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "missing authenticated application")
+		return echo.NewHTTPError(http.StatusUnauthorized, "missing API key principal")
 	}
 
-	browser, err := h.browserService.KeepAliveForApplication(c.Request().Context(), application.ID, strings.TrimSpace(c.Param("id")))
+	browserID := strings.TrimSpace(c.Param("id"))
+	browser, err := h.browserService.KeepAliveForAPIKey(c.Request().Context(), principal, browserID)
 	if err != nil {
 		return mapBrowserServiceError(err)
 	}
@@ -92,12 +94,13 @@ func (h *BrowsersHandler) KeepAliveBrowser(c echo.Context) error {
 }
 
 func (h *BrowsersHandler) CloseBrowser(c echo.Context) error {
-	application, ok := getAuthenticatedApplication(c)
+	principal, ok := getAPIKeyPrincipal(c)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "missing authenticated application")
+		return echo.NewHTTPError(http.StatusUnauthorized, "missing API key principal")
 	}
 
-	err := h.browserService.CloseForApplication(c.Request().Context(), application.ID, strings.TrimSpace(c.Param("id")))
+	browserID := strings.TrimSpace(c.Param("id"))
+	err := h.browserService.CloseForAPIKey(c.Request().Context(), principal, browserID)
 	if err != nil {
 		return mapBrowserServiceError(err)
 	}
@@ -125,6 +128,9 @@ func decodeSpawnRequest(c echo.Context) (browsers.SpawnRequest, error) {
 func mapBrowserServiceError(err error) error {
 	if errors.Is(err, browsers.ErrBrowserNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	if errors.Is(err, browsers.ErrForbidden) {
+		return echo.NewHTTPError(http.StatusForbidden, err.Error())
 	}
 
 	var upstreamError *browsers.UpstreamError

@@ -1,0 +1,199 @@
+package pages
+
+import (
+	dash "github.com/brian-nunez/bbaas-api/internal/dashboard"
+	"fmt"
+	"time"
+)
+
+templ Dashboard(view dash.ViewData, successMessage string, errorMessage string, newAPIKey string) {
+	@Layout("Dashboard") {
+		<div class="min-h-screen bg-slate-950">
+			<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+				<div class="flex flex-wrap items-center justify-between gap-4">
+					<div>
+						<p class="text-xs uppercase tracking-[0.22em] text-cyan-300">BBAAS Control Plane</p>
+						<h1 class="mt-2 text-3xl font-bold text-white">Welcome, { view.CurrentUser.Email }</h1>
+						<p class="mt-1 text-sm text-slate-400">Role: <span class="rounded bg-slate-800 px-2 py-0.5 text-slate-200">{ view.CurrentUser.Role }</span></p>
+					</div>
+					<form action="/logout" method="post">
+						<button type="submit" class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white">Log out</button>
+					</form>
+				</div>
+
+				if successMessage != "" {
+					<div class="mt-6 rounded-2xl border border-emerald-300/30 bg-emerald-400/10 px-5 py-4 text-sm text-emerald-100">{ successMessage }</div>
+				}
+				if errorMessage != "" {
+					<div class="mt-6 rounded-2xl border border-red-300/30 bg-red-400/10 px-5 py-4 text-sm text-red-100">{ errorMessage }</div>
+				}
+				if newAPIKey != "" {
+					<div class="mt-6 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-5 py-4 text-sm text-amber-100">
+						<div class="font-semibold">New API key generated (copy now).</div>
+						<div class="mt-2 overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 font-mono text-xs text-amber-200">{ newAPIKey }</div>
+					</div>
+				}
+
+				<div class="mt-8 grid gap-6 lg:grid-cols-12">
+					<div class="lg:col-span-4">
+						<div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
+							<h2 class="text-lg font-semibold text-white">Register Application</h2>
+							<p class="mt-1 text-xs text-slate-400">Name, description, GitHub, and domain.</p>
+							<form action="/dashboard/applications" method="post" class="mt-4 space-y-3">
+								<input type="text" name="name" placeholder="Application name" required class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"/>
+								<textarea name="description" placeholder="Description" rows="3" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"></textarea>
+								<input type="url" name="githubLink" placeholder="https://github.com/your-org" required class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"/>
+								<input type="text" name="domain" placeholder="example.com" required class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"/>
+								<button type="submit" class="w-full rounded-xl bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">Create application</button>
+							</form>
+						</div>
+
+						<div class="mt-6 rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
+							<h2 class="text-lg font-semibold text-white">Users</h2>
+							<div class="mt-4 space-y-3">
+								for _, user := range view.VisibleUsers {
+									<div class="rounded-xl border border-slate-800 bg-slate-950 px-3 py-2">
+										<div class="text-sm text-slate-100">{ user.Email }</div>
+										<div class="text-xs uppercase tracking-wider text-slate-500">{ user.Role }</div>
+									</div>
+								}
+							</div>
+						</div>
+					</div>
+
+					<div class="lg:col-span-8 space-y-6">
+						<div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
+							<h2 class="text-lg font-semibold text-white">Applications & API Keys</h2>
+							if len(view.Applications) == 0 {
+								<div class="mt-4 rounded-xl border border-dashed border-slate-700 px-4 py-6 text-sm text-slate-400">No applications yet.</div>
+							} else {
+								<div class="mt-5 space-y-6">
+									for _, app := range view.Applications {
+										<div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+											<div class="flex flex-wrap items-center justify-between gap-2">
+												<div>
+													<h3 class="text-base font-semibold text-slate-100">{ app.Application.Name }</h3>
+													<p class="text-xs text-slate-400">{ app.Application.Domain } · { app.Application.GitHubLink }</p>
+												</div>
+												<div class="text-xs text-slate-500">Created { app.Application.CreatedAt.Format(time.RFC822) }</div>
+											</div>
+											<p class="mt-2 text-sm text-slate-300">{ app.Application.Description }</p>
+
+											<form action={ fmt.Sprintf("/dashboard/applications/%s/api-keys", app.Application.ID) } method="post" class="mt-4 grid gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-3 sm:grid-cols-6">
+												<input type="text" name="name" required placeholder="New API key name" class="sm:col-span-3 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"/>
+												<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="canRead" checked/> READ</label>
+												<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="canWrite" checked/> WRITE</label>
+												<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" name="canDelete"/> DELETE</label>
+												<button class="sm:col-span-6 rounded-lg bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300">Generate API key</button>
+											</form>
+
+											<div class="mt-4 overflow-x-auto">
+												<table class="min-w-full text-left text-xs">
+													<thead class="text-slate-500">
+														<tr>
+															<th class="px-2 py-2">Name</th>
+															<th class="px-2 py-2">Prefix</th>
+															<th class="px-2 py-2">Permissions</th>
+															<th class="px-2 py-2">Last Used</th>
+															<th class="px-2 py-2">Action</th>
+														</tr>
+													</thead>
+													<tbody>
+														for _, key := range app.APIKeys {
+															<tr class="border-t border-slate-800">
+																<td class="px-2 py-2 text-slate-200">{ key.Name }</td>
+																<td class="px-2 py-2 font-mono text-slate-300">{ key.KeyPrefix }...</td>
+																<td class="px-2 py-2 text-slate-300">
+																	if key.CanRead {
+																		<span class="rounded bg-emerald-400/20 px-2 py-0.5 text-emerald-200">R</span>
+																	}
+																	if key.CanWrite {
+																		<span class="rounded bg-cyan-400/20 px-2 py-0.5 text-cyan-200">W</span>
+																	}
+																	if key.CanDelete {
+																		<span class="rounded bg-amber-400/20 px-2 py-0.5 text-amber-200">D</span>
+																	}
+																</td>
+																<td class="px-2 py-2 text-slate-400">
+																	if key.LastUsedAt != nil {
+																		{ key.LastUsedAt.Format(time.RFC822) }
+																	} else {
+																		Never
+																	}
+																</td>
+																<td class="px-2 py-2">
+																	if key.RevokedAt == nil {
+																		<form action={ fmt.Sprintf("/dashboard/applications/%s/api-keys/%s/revoke", app.Application.ID, key.ID) } method="post">
+																			<button class="rounded-md border border-red-400/40 bg-red-400/10 px-2 py-1 text-red-200 transition hover:bg-red-400/20">Revoke</button>
+																		</form>
+																	} else {
+																		<span class="text-red-300">Revoked</span>
+																	}
+																</td>
+															</tr>
+														}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									}
+								</div>
+							}
+						</div>
+
+						<div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
+							<h2 class="text-lg font-semibold text-white">Running Browsers</h2>
+							<div class="mt-4 overflow-x-auto">
+								<table class="min-w-full text-left text-xs text-slate-300">
+									<thead class="text-slate-500">
+										<tr><th class="px-2 py-2">App</th><th class="px-2 py-2">Browser ID</th><th class="px-2 py-2">CDP</th><th class="px-2 py-2">Last Active</th></tr>
+									</thead>
+									<tbody>
+										if len(view.RunningBrowsers) == 0 {
+											<tr><td class="px-2 py-3 text-slate-500" colspan="4">No running browsers.</td></tr>
+										} else {
+											for _, browser := range view.RunningBrowsers {
+												<tr class="border-t border-slate-800"><td class="px-2 py-2">{ browser.ApplicationName }</td><td class="px-2 py-2 font-mono">{ browser.ExternalBrowserID }</td><td class="px-2 py-2"><a href={ browser.CDPURL } class="text-cyan-300 hover:text-cyan-100" target="_blank">Connect</a></td><td class="px-2 py-2">{ browser.LastActiveAt.Format(time.RFC822) }</td></tr>
+											}
+										}
+									</tbody>
+								</table>
+							</div>
+						</div>
+
+						<div class="rounded-3xl border border-slate-800 bg-slate-900/90 p-6">
+							<h2 class="text-lg font-semibold text-white">Completed Browsers</h2>
+							<div class="mt-4 overflow-x-auto">
+								<table class="min-w-full text-left text-xs text-slate-300">
+									<thead class="text-slate-500">
+										<tr><th class="px-2 py-2">App</th><th class="px-2 py-2">Browser ID</th><th class="px-2 py-2">Started</th><th class="px-2 py-2">Closed</th></tr>
+									</thead>
+										<tbody>
+											if len(view.CompletedBrowsers) == 0 {
+												<tr><td class="px-2 py-3 text-slate-500" colspan="4">No completed browsers yet.</td></tr>
+											} else {
+												for _, browser := range view.CompletedBrowsers {
+													<tr class="border-t border-slate-800">
+														<td class="px-2 py-2">{ browser.ApplicationName }</td>
+														<td class="px-2 py-2 font-mono">{ browser.ExternalBrowserID }</td>
+														<td class="px-2 py-2">{ browser.CreatedAt.Format(time.RFC822) }</td>
+														<td class="px-2 py-2">
+															if browser.ClosedAt != nil {
+																{ browser.ClosedAt.Format(time.RFC822) }
+															} else {
+																Unknown
+															}
+														</td>
+													</tr>
+												}
+											}
+										</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}

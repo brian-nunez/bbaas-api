@@ -3,29 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/brian-nunez/bbaas-api/sdk/go/bbaas"
 )
 
 func main() {
-
 	ctx := context.Background()
+	apiKey := os.Getenv("BBAAS_API_KEY")
+	if apiKey == "" {
+		panic("set BBAAS_API_KEY before running this command")
+	}
 
-	client, err := bbaas.NewClient("http://localhost:8080")
+	client, err := bbaas.NewClient("http://localhost:8080", bbaas.WithAPIToken(apiKey))
 	if err != nil {
 		panic(err)
 	}
-
-	registered, err := client.RegisterApplication(ctx, bbaas.RegisterApplicationRequest{
-		Name:              "automation-app",
-		Description:       "Runs browser automation",
-		GitHubProfileLink: "https://github.com/brian-nunez",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	client.SetAPIToken(registered.APIToken)
 
 	spawned, err := client.SpawnBrowser(ctx, bbaas.SpawnBrowserRequest{})
 	if err != nil {

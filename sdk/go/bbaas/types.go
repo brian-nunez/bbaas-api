@@ -2,26 +2,6 @@ package bbaas
 
 import "time"
 
-type RegisterApplicationRequest struct {
-	Name              string `json:"name"`
-	Description       string `json:"description"`
-	GitHubProfileLink string `json:"githubProfileLink"`
-}
-
-type Application struct {
-	ID                string    `json:"id"`
-	Name              string    `json:"name"`
-	Description       string    `json:"description"`
-	GitHubProfileLink string    `json:"githubProfileLink"`
-	CreatedAt         time.Time `json:"createdAt"`
-	UpdatedAt         time.Time `json:"updatedAt"`
-}
-
-type RegisterApplicationResponse struct {
-	Application Application `json:"application"`
-	APIToken    string      `json:"apiToken"`
-}
-
 type SpawnBrowserRequest struct {
 	Headless           *bool `json:"headless,omitempty"`
 	IdleTimeoutSeconds *int  `json:"idleTimeoutSeconds,omitempty"`

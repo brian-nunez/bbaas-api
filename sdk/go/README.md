@@ -20,16 +20,7 @@ if err != nil {
     panic(err)
 }
 
-registered, err := client.RegisterApplication(ctx, bbaas.RegisterApplicationRequest{
-    Name:              "automation-app",
-    Description:       "Runs browser automation",
-    GitHubProfileLink: "https://github.com/my-org",
-})
-if err != nil {
-    panic(err)
-}
-
-client.SetAPIToken(registered.APIToken)
+client.SetAPIToken("bka_...generated_from_dashboard...")
 
 spawned, err := client.SpawnBrowser(ctx, bbaas.SpawnBrowserRequest{})
 if err != nil {
@@ -41,7 +32,6 @@ fmt.Println(spawned.Browser.CDPURL)
 
 ## Methods
 
-- `RegisterApplication`
 - `SpawnBrowser`
 - `ListBrowsers`
 - `GetBrowser`

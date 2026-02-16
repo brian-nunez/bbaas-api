@@ -2,16 +2,16 @@ package v1
 
 import "github.com/brian-nunez/bbaas-api/internal/applications"
 
-const applicationContextKey = "application"
+const apiKeyPrincipalContextKey = "api_key_principal"
 
-func setAuthenticatedApplication(c contextSetter, application applications.Application) {
-	c.Set(applicationContextKey, application)
+func setAPIKeyPrincipal(c contextSetter, principal applications.APIKeyPrincipal) {
+	c.Set(apiKeyPrincipalContextKey, principal)
 }
 
-func getAuthenticatedApplication(c contextGetter) (applications.Application, bool) {
-	value := c.Get(applicationContextKey)
-	application, ok := value.(applications.Application)
-	return application, ok
+func getAPIKeyPrincipal(c contextGetter) (applications.APIKeyPrincipal, bool) {
+	value := c.Get(apiKeyPrincipalContextKey)
+	principal, ok := value.(applications.APIKeyPrincipal)
+	return principal, ok
 }
 
 type contextSetter interface {

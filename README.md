@@ -10,9 +10,10 @@ This project gives you a solid foundation to build from — with preconfigured d
 
 This template now includes a browser-management API layer that sits in front of your existing CDP manager service.
 
-- Application registration with API token issuance
-- Token-authenticated browser lifecycle APIs (spawn/list/get/keepalive/close)
-- Ownership checks so each application only manages its own browser sessions
+- User registration/login with secure session cookies
+- Dashboard for application registration and API key management
+- Scoped API keys (`READ`, `WRITE`, `DELETE`) for browser lifecycle APIs
+- Running/completed browser session tracking per user/application
 - Go SDK wrapper (`/sdk/go/bbaas`) for API consumption from Go projects
 - Service boundaries/interfaces to support future extension (dashboards, admin tooling, live session views)
 
@@ -20,21 +21,32 @@ This template now includes a browser-management API layer that sits in front of 
 
 - `PORT` (default `8080`)
 - `CDP_MANAGER_BASE_URL` (default `http://127.0.0.1:8081`)
+- `DB_DRIVER` (default `sqlite`, supported: `sqlite`, `postgres`)
+- `DB_DSN` (default for sqlite: `file:bbaas.db?_pragma=foreign_keys(1)`)
+
+Note: the `postgres` adapter is wired in the app layer; to run with Postgres, link a Postgres SQL driver in your binary (kept out of the default template to minimize dependencies).
 
 ### API Endpoints
 
 Base path: `/api/v1`
 
-- `POST /applications` (public): register an application and receive API token
 - `GET /health` (public): health check
-- `POST /browsers` (auth): spawn browser for authenticated application
-- `GET /browsers` (auth): list authenticated application's browsers
+- `POST /browsers` (auth): spawn browser
+- `GET /browsers` (auth): list browsers for API key's application
 - `GET /browsers/:id` (auth): fetch browser details
 - `POST /browsers/:id/keepalive` (auth): extend idle timeout
 - `DELETE /browsers/:id` (auth): close browser
 
 Authentication:
 - `Authorization: Bearer <api_token>` or `X-API-Key: <api_token>`
+
+Web UI flows:
+- `GET /register`, `POST /register`
+- `GET /login`, `POST /login`, `POST /logout`
+- `GET /dashboard`
+- `POST /dashboard/applications`
+- `POST /dashboard/applications/:applicationId/api-keys`
+- `POST /dashboard/applications/:applicationId/api-keys/:keyId/revoke`
 
 ### Go SDK Quickstart
 
@@ -49,14 +61,7 @@ Example:
 ```go
 ctx := context.Background()
 
-client, _ := bbaas.NewClient("http://localhost:8080")
-registered, _ := client.RegisterApplication(ctx, bbaas.RegisterApplicationRequest{
-    Name:              "my-e2e-app",
-    Description:       "Runs Playwright flows",
-    GitHubProfileLink: "https://github.com/my-org",
-})
-
-client.SetAPIToken(registered.APIToken)
+client, _ := bbaas.NewClient("http://localhost:8080", bbaas.WithAPIToken("bka_..."))
 spawned, _ := client.SpawnBrowser(ctx, bbaas.SpawnBrowserRequest{})
 fmt.Println(spawned.Browser.CDPURL)
 ```

@@ -5,7 +5,7 @@ templ:
 
 server:
 	air \
-		--build.cmd "CDP_MANAGER_BASE_URL='127.0.0.1:8081' go build -o tmp/bin/main ./cmd/main.go" \
+		--build.cmd "CDP_MANAGER_BASE_URL='http://127.0.0.1:8081' go build -o tmp/bin/main ./cmd/main.go" \
 		--build.bin "tmp/bin/main" \
 		--build.delay "100" \
 		--build.exclude_dir "node_modules" \
@@ -18,4 +18,3 @@ tailwind:
 
 dev:
 	make -j3 templ tailwind server
-

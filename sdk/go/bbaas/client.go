@@ -80,15 +80,6 @@ func (c *Client) SetAPIToken(apiToken string) {
 	c.apiToken = strings.TrimSpace(apiToken)
 }
 
-func (c *Client) RegisterApplication(ctx context.Context, request RegisterApplicationRequest) (RegisterApplicationResponse, error) {
-	var response RegisterApplicationResponse
-	if err := c.do(ctx, http.MethodPost, "/api/v1/applications", request, false, http.StatusCreated, &response); err != nil {
-		return RegisterApplicationResponse{}, err
-	}
-
-	return response, nil
-}
-
 func (c *Client) SpawnBrowser(ctx context.Context, request SpawnBrowserRequest) (SpawnBrowserResponse, error) {
 	var response SpawnBrowserResponse
 	if err := c.do(ctx, http.MethodPost, "/api/v1/browsers", request, true, http.StatusCreated, &response); err != nil {

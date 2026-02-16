@@ -15,12 +15,16 @@ import (
 func main() {
 	port := getenvOrDefault("PORT", "8080")
 	cdpManagerBaseURL := getenvOrDefault("CDP_MANAGER_BASE_URL", "http://127.0.0.1:8081")
+	dbDriver := getenvOrDefault("DB_DRIVER", "sqlite")
+	dbDSN := getenvOrDefault("DB_DSN", "")
 
 	server, err := httpserver.Bootstrap(httpserver.BootstrapConfig{
 		StaticDirectories: map[string]string{
 			"/assets": "./assets",
 		},
 		CDPManagerBaseURL: cdpManagerBaseURL,
+		DBDriver:          dbDriver,
+		DBDSN:             dbDSN,
 	})
 	if err != nil {
 		log.Fatalf("could not bootstrap server: %v", err)

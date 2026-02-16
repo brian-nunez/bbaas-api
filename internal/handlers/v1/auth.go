@@ -9,30 +9,27 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func APIKeyAuthMiddleware(applicationService *applications.Service) echo.MiddlewareFunc {
+func APIKeyAuthMiddleware(applicationsService *applications.Service) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			apiToken := extractAPIToken(c)
-			if apiToken == "" {
+			rawAPIKey := extractAPIToken(c)
+			if rawAPIKey == "" {
 				response := handlererrors.Unauthorized().
-					WithMessage("Missing API token. Use Authorization: Bearer <token> or X-API-Key header").
+					WithMessage("Missing API key. Use Authorization: Bearer <key> or X-API-Key header").
 					Build()
 				return c.JSON(response.HTTPStatusCode, response)
 			}
 
-			application, err := applicationService.AuthenticateToken(c.Request().Context(), apiToken)
+			principal, err := applicationsService.AuthenticateAPIKey(c.Request().Context(), rawAPIKey)
 			if err != nil {
-				if errors.Is(err, applications.ErrInvalidAPIToken) {
-					response := handlererrors.Unauthorized().
-						WithMessage("Invalid API token").
-						Build()
+				if errors.Is(err, applications.ErrInvalidAPIKey) {
+					response := handlererrors.Unauthorized().WithMessage("Invalid API key").Build()
 					return c.JSON(response.HTTPStatusCode, response)
 				}
-
 				return err
 			}
 
-			setAuthenticatedApplication(c, application)
+			setAPIKeyPrincipal(c, principal)
 			return next(c)
 		}
 	}

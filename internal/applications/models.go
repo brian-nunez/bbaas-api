@@ -3,21 +3,37 @@ package applications
 import "time"
 
 type Application struct {
-	ID                string    `json:"id"`
-	Name              string    `json:"name"`
-	Description       string    `json:"description"`
-	GitHubProfileLink string    `json:"githubProfileLink"`
-	CreatedAt         time.Time `json:"createdAt"`
-	UpdatedAt         time.Time `json:"updatedAt"`
+	ID          string
+	OwnerUserID string
+	Name        string
+	Description string
+	GitHubLink  string
+	Domain      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
-type RegisterInput struct {
-	Name              string
-	Description       string
-	GitHubProfileLink string
+type APIKey struct {
+	ID            string
+	ApplicationID string
+	Name          string
+	KeyPrefix     string
+	CanRead       bool
+	CanWrite      bool
+	CanDelete     bool
+	CreatedAt     time.Time
+	LastUsedAt    *time.Time
+	RevokedAt     *time.Time
 }
 
-type RegisterOutput struct {
-	Application Application `json:"application"`
-	APIToken    string      `json:"apiToken"`
+type APIKeyPermissions struct {
+	CanRead   bool
+	CanWrite  bool
+	CanDelete bool
+}
+
+type APIKeyPrincipal struct {
+	KeyID         string
+	ApplicationID string
+	Permissions   APIKeyPermissions
 }

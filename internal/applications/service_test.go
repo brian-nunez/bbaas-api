@@ -2,75 +2,85 @@ package applications
 
 import (
 	"context"
-	"errors"
 	"testing"
+
+	"github.com/brian-nunez/bbaas-api/internal/authorization"
+	"github.com/brian-nunez/bbaas-api/internal/data"
+	"github.com/brian-nunez/bbaas-api/internal/users"
 )
 
-func TestRegisterAndAuthenticateToken(t *testing.T) {
+func TestRegisterApplicationAndAPIKeyLifecycle(t *testing.T) {
 	t.Parallel()
 
-	service := NewService(NewInMemoryRepository())
+	ctx := context.Background()
+	store := setupStore(t)
+	usersService := users.NewService(store)
+	appsService := NewService(store, authorization.NewWebAuthorizer())
 
-	registered, err := service.Register(context.Background(), RegisterInput{
-		Name:              "My App",
-		Description:       "E2E flows",
-		GitHubProfileLink: "https://github.com/example",
+	user, err := usersService.Register(ctx, "builder@example.com", "password123")
+	if err != nil {
+		t.Fatalf("register user: %v", err)
+	}
+
+	application, err := appsService.RegisterApplication(ctx, user, RegisterApplicationInput{
+		Name:        "CDP Suite",
+		Description: "Runner",
+		GitHubLink:  "https://github.com/example-org",
+		Domain:      "example.com",
 	})
 	if err != nil {
-		t.Fatalf("expected successful registration, got error: %v", err)
-	}
-	if registered.APIToken == "" {
-		t.Fatalf("expected API token")
-	}
-	if registered.Application.ID == "" {
-		t.Fatalf("expected application ID")
+		t.Fatalf("register application: %v", err)
 	}
 
-	authenticated, err := service.AuthenticateToken(context.Background(), registered.APIToken)
+	createdKey, err := appsService.CreateAPIKey(ctx, user, application.ID, CreateAPIKeyInput{
+		Name: "Primary",
+		Permissions: APIKeyPermissions{
+			CanRead:  true,
+			CanWrite: true,
+		},
+	})
 	if err != nil {
-		t.Fatalf("expected successful authentication, got error: %v", err)
+		t.Fatalf("create API key: %v", err)
 	}
-	if authenticated.ID != registered.Application.ID {
-		t.Fatalf("expected app id %q, got %q", registered.Application.ID, authenticated.ID)
+	if createdKey.Token == "" {
+		t.Fatalf("expected API key token")
+	}
+
+	principal, err := appsService.AuthenticateAPIKey(ctx, createdKey.Token)
+	if err != nil {
+		t.Fatalf("authenticate API key: %v", err)
+	}
+	if principal.ApplicationID != application.ID {
+		t.Fatalf("expected application id %s, got %s", application.ID, principal.ApplicationID)
+	}
+	if !principal.Permissions.CanWrite {
+		t.Fatalf("expected write permission")
+	}
+
+	if err := appsService.RevokeAPIKey(ctx, user, application.ID, createdKey.APIKey.ID); err != nil {
+		t.Fatalf("revoke API key: %v", err)
+	}
+
+	if _, err := appsService.AuthenticateAPIKey(ctx, createdKey.Token); err == nil {
+		t.Fatalf("expected revoked key to fail authentication")
 	}
 }
 
-func TestRegisterValidation(t *testing.T) {
-	t.Parallel()
+func setupStore(t *testing.T) *data.Store {
+	t.Helper()
 
-	service := NewService(NewInMemoryRepository())
-
-	_, err := service.Register(context.Background(), RegisterInput{
-		Name:              "",
-		Description:       "desc",
-		GitHubProfileLink: "https://github.com/example",
+	db, _, err := data.Open(data.Config{
+		Driver: "sqlite",
+		DSN:    "file::memory:?cache=shared",
 	})
-	if !errors.Is(err, ErrNameRequired) {
-		t.Fatalf("expected ErrNameRequired, got %v", err)
+	if err != nil {
+		t.Fatalf("open test database: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if err := data.RunMigrations(context.Background(), db); err != nil {
+		t.Fatalf("run migrations: %v", err)
 	}
 
-	_, err = service.Register(context.Background(), RegisterInput{
-		Name:              "App",
-		Description:       "desc",
-		GitHubProfileLink: "https://gitlab.com/example",
-	})
-	if !errors.Is(err, ErrInvalidGitHubLink) {
-		t.Fatalf("expected ErrInvalidGitHubLink, got %v", err)
-	}
-}
-
-func TestAuthenticateInvalidToken(t *testing.T) {
-	t.Parallel()
-
-	service := NewService(NewInMemoryRepository())
-
-	_, err := service.AuthenticateToken(context.Background(), "")
-	if !errors.Is(err, ErrInvalidAPIToken) {
-		t.Fatalf("expected ErrInvalidAPIToken for empty token, got %v", err)
-	}
-
-	_, err = service.AuthenticateToken(context.Background(), "bbaas_invalid")
-	if !errors.Is(err, ErrInvalidAPIToken) {
-		t.Fatalf("expected ErrInvalidAPIToken for unknown token, got %v", err)
-	}
+	return data.NewStore(db)
 }
