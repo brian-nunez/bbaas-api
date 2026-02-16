@@ -1,14 +1,7 @@
-# Go, Echo, Templ, Tailwind Starter Template
 
-A fast, minimal starter template for building server-rendered web applications in Go using Echo, Templ, TailwindCSS, and Templ UI.
+# Browser API Layer (BBAAS)
 
-This project gives you a solid foundation to build from — with preconfigured defaults, an opinionated folder structure, and server-rendered HTML out of the box.
-
----
-
-## Browser API Layer (BBAAS)
-
-This template now includes a browser-management API layer that sits in front of your existing CDP manager service.
+This includes a browser-management API layer that sits in front of your existing CDP manager service.
 
 - User registration/login with secure session cookies
 - Dashboard for application registration and API key management
@@ -17,16 +10,16 @@ This template now includes a browser-management API layer that sits in front of 
 - Go SDK wrapper (`/sdk/go/bbaas`) for API consumption from Go projects
 - Service boundaries/interfaces to support future extension (dashboards, admin tooling, live session views)
 
-### Environment Variables
+## Environment Variables
 
 - `PORT` (default `8080`)
 - `CDP_MANAGER_BASE_URL` (default `http://127.0.0.1:8081`)
 - `DB_DRIVER` (default `sqlite`, supported: `sqlite`, `postgres`)
 - `DB_DSN` (default for sqlite: `file:bbaas.db?_pragma=foreign_keys(1)`)
 
-Note: the `postgres` adapter is wired in the app layer; to run with Postgres, link a Postgres SQL driver in your binary (kept out of the default template to minimize dependencies).
+Note: the `postgres` adapter is wired in the app layer; to run with Postgres, link a Postgres SQL driver in your binary (kept out of the default to minimize dependencies).
 
-### API Endpoints
+## API Endpoints
 
 Base path: `/api/v1`
 
@@ -48,7 +41,7 @@ Web UI flows:
 - `POST /dashboard/applications/:applicationId/api-keys`
 - `POST /dashboard/applications/:applicationId/api-keys/:keyId/revoke`
 
-### Go SDK Quickstart
+## Go SDK Quickstart
 
 Import path:
 
@@ -111,8 +104,8 @@ fmt.Println(spawned.Browser.CDPURL)
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/brian-nunez/go-echo-templ-tailwind-template.git
-cd go-echo-templ-tailwind-template
+git clone https://github.com/brian-nunez/bbaas-api.git
+cd bbaas-api
 ```
 
 ### 2. Install dependencies
