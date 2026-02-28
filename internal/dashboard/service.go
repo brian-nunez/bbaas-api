@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/brian-nunez/bbaas-api/internal/applications"
@@ -42,15 +43,17 @@ type Service struct {
 	usersService        *users.Service
 	applicationsService *applications.Service
 	browserManager      browsers.ManagerClient
+	publicCDPBase       string
 	now                 func() time.Time
 }
 
-func NewService(store *data.Store, usersService *users.Service, applicationsService *applications.Service, browserManager browsers.ManagerClient) *Service {
+func NewService(store *data.Store, usersService *users.Service, applicationsService *applications.Service, browserManager browsers.ManagerClient, publicCDPBase string) *Service {
 	return &Service{
 		store:               store,
 		usersService:        usersService,
 		applicationsService: applicationsService,
 		browserManager:      browserManager,
+		publicCDPBase:       strings.TrimSpace(publicCDPBase),
 		now:                 time.Now,
 	}
 }
@@ -103,6 +106,11 @@ func (s *Service) BuildViewData(ctx context.Context, viewer users.User) (ViewDat
 			LastActiveAt:      browserRecord.LastActiveAt,
 			ClosedAt:          browserRecord.ClosedAt,
 			ExpiresAt:         browserRecord.ExpiresAt,
+		}
+		publicURL := browsers.PublicCDPURLFromRaw(browserRecord.CDPHTTPURL, browserRecord.CDPURL, s.publicCDPBase)
+		if publicURL != "" {
+			browser.CDPHTTPURL = publicURL
+			browser.CDPURL = publicURL
 		}
 		if browser.Status == "RUNNING" {
 			runningBrowsers = append(runningBrowsers, browser)

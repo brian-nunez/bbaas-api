@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.vscode
+.DS_Store
+
+api-data
+cdp-manager-data
+bbaas.db
+tmp
+
+node_modules
+coverage
+*.log

@@ -23,6 +23,7 @@ type Server interface {
 type BootstrapConfig struct {
 	StaticDirectories map[string]string
 	CDPManagerBaseURL string
+	CDPPublicBaseURL  string
 	DBDriver          string
 	DBDSN             string
 }
@@ -74,10 +75,10 @@ func Bootstrap(config BootstrapConfig) (Server, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("create CDP manager client: %w", err)
 	}
-	dashboardService := dashboard.NewService(store, usersService, applicationsService, browserManagerClient)
+	dashboardService := dashboard.NewService(store, usersService, applicationsService, browserManagerClient, config.CDPPublicBaseURL)
 
 	apiAuthorizer := authorization.NewAPIAuthorizer()
-	browserService := browsers.NewService(browserManagerClient, store, apiAuthorizer)
+	browserService := browsers.NewService(browserManagerClient, store, apiAuthorizer, config.CDPPublicBaseURL)
 
 	echoServer := New().
 		WithStaticAssets(config.StaticDirectories).

@@ -24,14 +24,16 @@ type Service struct {
 	client        ManagerClient
 	store         *data.Store
 	authorization *authorization.APIAuthorizer
+	publicCDPBase string
 	now           func() time.Time
 }
 
-func NewService(client ManagerClient, store *data.Store, authorizer *authorization.APIAuthorizer) *Service {
+func NewService(client ManagerClient, store *data.Store, authorizer *authorization.APIAuthorizer, publicCDPBase string) *Service {
 	return &Service{
 		client:        client,
 		store:         store,
 		authorization: authorizer,
+		publicCDPBase: strings.TrimSpace(publicCDPBase),
 		now:           time.Now,
 	}
 }
@@ -74,6 +76,7 @@ func (s *Service) SpawnForAPIKey(ctx context.Context, principal applications.API
 		return SpawnResponse{}, fmt.Errorf("persist browser session: %w", err)
 	}
 
+	spawnedBrowser.Browser = RewriteBrowserForPublicGateway(spawnedBrowser.Browser, s.publicCDPBase)
 	return spawnedBrowser, nil
 }
 
@@ -110,6 +113,7 @@ func (s *Service) ListForAPIKey(ctx context.Context, principal applications.APIK
 			continue
 		}
 
+		upstreamBrowser = RewriteBrowserForPublicGateway(upstreamBrowser, s.publicCDPBase)
 		ownedBrowsers = append(ownedBrowsers, upstreamBrowser)
 	}
 
@@ -142,6 +146,7 @@ func (s *Service) GetForAPIKey(ctx context.Context, principal applications.APIKe
 		return Browser{}, fmt.Errorf("update browser heartbeat: %w", err)
 	}
 
+	browser = RewriteBrowserForPublicGateway(browser, s.publicCDPBase)
 	return browser, nil
 }
 
@@ -167,6 +172,7 @@ func (s *Service) KeepAliveForAPIKey(ctx context.Context, principal applications
 		return Browser{}, fmt.Errorf("update browser heartbeat: %w", err)
 	}
 
+	browser = RewriteBrowserForPublicGateway(browser, s.publicCDPBase)
 	return browser, nil
 }
 

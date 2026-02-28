@@ -58,7 +58,7 @@ func main() {
 		log.Fatalf("could not set viewport size: %v", err)
 	}
 
-	if _, err = page.Goto("https://www.b8z.me/"); err != nil {
+	if _, err = page.Goto("https://www.google.com"); err != nil {
 		log.Fatalf("could not goto: %v", err)
 	}
 
@@ -83,6 +83,6 @@ func main() {
 	// if err != nil {
 	// 	log.Fatalf("could not close browser: %v", err)
 	// }
-
-	fmt.Println("Browser closed successfully")
+	//
+	// fmt.Println("Browser closed successfully")
 }
