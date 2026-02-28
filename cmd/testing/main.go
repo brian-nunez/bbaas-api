@@ -10,8 +10,7 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-func main() {
-	ctx := context.Background()
+func getCDPURLFromService(ctx context.Context) string {
 	apiKey := os.Getenv("BBAAS_API_KEY")
 	if apiKey == "" {
 		panic("set BBAAS_API_KEY before running this command")
@@ -30,12 +29,21 @@ func main() {
 		panic(err)
 	}
 
+	return spawned.Browser.CDPURL
+}
+
+func main() {
+	cdpURL := os.Getenv("BBAAS_CDP_URL")
+	if cdpURL == "" {
+		cdpURL = getCDPURLFromService(context.Background())
+	}
+
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Fatalf("Error starting playwright %v", err)
 	}
 
-	browser, err := pw.Chromium.ConnectOverCDP(spawned.Browser.CDPURL)
+	browser, err := pw.Chromium.ConnectOverCDP(cdpURL)
 	if err != nil {
 		log.Fatalf("Error starting browser %v", err)
 	}
@@ -71,10 +79,10 @@ func main() {
 		fmt.Printf("%d: %s\n", i+1, title)
 	}
 
-	err = client.CloseBrowser(context.Background(), spawned.Browser.ID)
-	if err != nil {
-		log.Fatalf("could not close browser: %v", err)
-	}
+	// err = client.CloseBrowser(context.Background(), spawned.Browser.ID)
+	// if err != nil {
+	// 	log.Fatalf("could not close browser: %v", err)
+	// }
 
 	fmt.Println("Browser closed successfully")
 }
