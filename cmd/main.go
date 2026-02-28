@@ -15,6 +15,7 @@ import (
 func main() {
 	port := getenvOrDefault("PORT", "8080")
 	cdpManagerBaseURL := getenvOrDefault("CDP_MANAGER_BASE_URL", "http://127.0.0.1:8081")
+	cdpPublicBaseURL := getenvOrDefault("CDP_PUBLIC_BASE_URL", "")
 	dbDriver := getenvOrDefault("DB_DRIVER", "sqlite")
 	dbDSN := getenvOrDefault("DB_DSN", "")
 
@@ -23,6 +24,7 @@ func main() {
 			"/assets": "./assets",
 		},
 		CDPManagerBaseURL: cdpManagerBaseURL,
+		CDPPublicBaseURL:  cdpPublicBaseURL,
 		DBDriver:          dbDriver,
 		DBDSN:             dbDSN,
 	})

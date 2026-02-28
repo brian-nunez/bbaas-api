@@ -1,0 +1,35 @@
+name: bbaas-prod
+
+services:
+  bbaas-cdp-manager:
+    image: ${CDP_MANAGER_IMAGE:-bbaas-cdp:latest}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PORT: "${CDP_MANAGER_PORT:-8081}"
+      CDP_BIND_HOST: "${CDP_BIND_HOST:-127.0.0.1}"
+      CDP_PUBLIC_HOST: "${CDP_PUBLIC_HOST:-127.0.0.1}"
+      PLAYWRIGHT_HEADLESS: "${PLAYWRIGHT_HEADLESS:-true}"
+      BROWSER_IDLE_TIMEOUT: "${BROWSER_IDLE_TIMEOUT:-1m}"
+      BROWSER_CLEANUP_INTERVAL: "${BROWSER_CLEANUP_INTERVAL:-5s}"
+      TASK_WORKER_CONCURRENCY: "${TASK_WORKER_CONCURRENCY:-4}"
+      TASK_DB_PATH: "/data/tasks.db"
+      TASK_LOG_PATH: "/data/logs"
+    volumes:
+      - ./cdp-manager-data:/data
+
+  bbaas-api:
+    image: ${BBAAS_API_IMAGE:-bbaas-api:latest}
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      bbaas-cdp-manager:
+        condition: service_started
+    environment:
+      PORT: "${PORT:-8080}"
+      DB_DRIVER: "${DB_DRIVER:-sqlite}"
+      DB_DSN: "${DB_DSN:-file:/data/bbaas.db?_pragma=foreign_keys(1)}"
+      CDP_MANAGER_BASE_URL: "${CDP_MANAGER_BASE_URL:-http://127.0.0.1:8081}"
+      CDP_PUBLIC_BASE_URL: "${CDP_PUBLIC_BASE_URL:-https://bbaas-manager.b8z.me/browsers}"
+    volumes:
+      - ./api-data:/data
