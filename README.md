@@ -14,9 +14,10 @@ This includes a browser-management API layer that sits in front of your existing
 
 - `PORT` (default `8080`)
 - `CDP_MANAGER_BASE_URL` (default `http://127.0.0.1:8081`)
+- `CDP_MANAGER_HTTP_TIMEOUT` (default `60s`)
 - `CDP_PUBLIC_BASE_URL` (default empty). When empty, API returns manager-provided URLs (local default usually `127.0.0.1:<port>`). When set, API returns `cdpUrl`/`cdpHttpUrl` as `<base>/<cdp-port>` (example: `https://bbaas-manager.b8z.me/browsers/50100`)
 - `DB_DRIVER` (default `sqlite`, supported: `sqlite`, `postgres`)
-- `DB_DSN` (default for sqlite: `file:bbaas.db?_pragma=foreign_keys(1)`)
+- `DB_DSN` (default for sqlite: `file:bbaas.db?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)`)
 
 Note: the `postgres` adapter is wired in the app layer; to run with Postgres, link a Postgres SQL driver in your binary (kept out of the default to minimize dependencies).
 

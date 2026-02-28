@@ -31,8 +31,9 @@ RUN mkdir -p /data && chown -R app:app /app /data
 
 ENV PORT=8080
 ENV DB_DRIVER=sqlite
-ENV DB_DSN=file:/data/bbaas.db?_pragma=foreign_keys(1)
+ENV DB_DSN=file:/data/bbaas.db?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)
 ENV CDP_MANAGER_BASE_URL=http://127.0.0.1:8081
+ENV CDP_MANAGER_HTTP_TIMEOUT=60s
 ENV CDP_PUBLIC_BASE_URL=
 
 EXPOSE 8080

@@ -1,8 +1,10 @@
 package v1
 
 import (
+	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/brian-nunez/bbaas-api/internal/applications"
 	handlererrors "github.com/brian-nunez/bbaas-api/internal/handlers/errors"
@@ -20,8 +22,16 @@ func APIKeyAuthMiddleware(applicationsService *applications.Service) echo.Middle
 				return c.JSON(response.HTTPStatusCode, response)
 			}
 
-			principal, err := applicationsService.AuthenticateAPIKey(c.Request().Context(), rawAPIKey)
+			authCtx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+			defer cancel()
+			principal, err := applicationsService.AuthenticateAPIKey(authCtx, rawAPIKey)
 			if err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					response := handlererrors.ServiceNotAvailable().
+						WithMessage("API key authentication timed out").
+						Build()
+					return c.JSON(response.HTTPStatusCode, response)
+				}
 				if errors.Is(err, applications.ErrInvalidAPIKey) {
 					response := handlererrors.Unauthorized().WithMessage("Invalid API key").Build()
 					return c.JSON(response.HTTPStatusCode, response)

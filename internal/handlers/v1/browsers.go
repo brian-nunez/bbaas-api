@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -126,6 +127,9 @@ func decodeSpawnRequest(c echo.Context) (browsers.SpawnRequest, error) {
 }
 
 func mapBrowserServiceError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return echo.NewHTTPError(http.StatusGatewayTimeout, "browser spawn timed out")
+	}
 	if errors.Is(err, browsers.ErrBrowserNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	}

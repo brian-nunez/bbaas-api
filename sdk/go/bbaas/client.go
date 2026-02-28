@@ -65,7 +65,7 @@ func NewClient(baseURL string, options ...Option) (*Client, error) {
 	client := &Client{
 		baseURL: parsedURL,
 		httpClient: &http.Client{
-			Timeout: 20 * time.Second,
+			Timeout: 60 * time.Second,
 		},
 	}
 
@@ -82,11 +82,19 @@ func (c *Client) SetAPIToken(apiToken string) {
 
 func (c *Client) SpawnBrowser(ctx context.Context, request SpawnBrowserRequest) (SpawnBrowserResponse, error) {
 	var response SpawnBrowserResponse
-	if err := c.do(ctx, http.MethodPost, "/api/v1/browsers", request, true, http.StatusCreated, &response); err != nil {
+	var requestBody any
+	if !isEmptySpawnBrowserRequest(request) {
+		requestBody = request
+	}
+	if err := c.do(ctx, http.MethodPost, "/api/v1/browsers", requestBody, true, http.StatusCreated, &response); err != nil {
 		return SpawnBrowserResponse{}, err
 	}
 
 	return response, nil
+}
+
+func isEmptySpawnBrowserRequest(request SpawnBrowserRequest) bool {
+	return request.Headless == nil && request.IdleTimeoutSeconds == nil
 }
 
 func (c *Client) ListBrowsers(ctx context.Context) ([]Browser, error) {
@@ -155,7 +163,7 @@ func (c *Client) do(ctx context.Context, method string, resourcePath string, req
 		if strings.TrimSpace(c.apiToken) == "" {
 			return fmt.Errorf("API token is required for this endpoint")
 		}
-		httpRequest.Header.Set("Authorization", "Bearer "+c.apiToken)
+		httpRequest.Header.Set("X-API-Key", c.apiToken)
 	}
 
 	httpResponse, err := c.httpClient.Do(httpRequest)

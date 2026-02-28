@@ -13,7 +13,7 @@ func TestClientSpawn(t *testing.T) {
 
 	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.Method == http.MethodPost && request.URL.Path == "/api/v1/browsers" {
-			if request.Header.Get("Authorization") != "Bearer bbaas_token" {
+			if request.Header.Get("X-API-Key") != "bbaas_token" {
 				return jsonResponse(http.StatusUnauthorized, `{"error":{"error_message":"unauthorized"}}`), nil
 			}
 

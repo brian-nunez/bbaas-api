@@ -35,7 +35,7 @@ func (SQLiteAdapter) DriverName() string {
 }
 
 func (SQLiteAdapter) DefaultDSN() string {
-	return "file:bbaas.db?_pragma=foreign_keys(1)"
+	return "file:bbaas.db?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)"
 }
 
 func (SQLiteAdapter) NormalizeDSN(input string) string {
@@ -115,6 +115,13 @@ func Open(config Config) (*sql.DB, Adapter, error) {
 	if err := db.Ping(); err != nil {
 		_ = db.Close()
 		return nil, nil, fmt.Errorf("ping %s database: %w", adapter.Name(), err)
+	}
+
+	// SQLite is single-writer; keeping one pooled connection avoids lock contention
+	// that can stall authenticated request paths under concurrent writes.
+	if adapter.Name() == "sqlite" {
+		db.SetMaxOpenConns(1)
+		db.SetMaxIdleConns(1)
 	}
 
 	return db, adapter, nil

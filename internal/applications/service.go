@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -224,7 +225,14 @@ func (s *Service) AuthenticateAPIKey(ctx context.Context, rawToken string) (APIK
 		return APIKeyPrincipal{}, ErrInvalidAPIKey
 	}
 
-	_ = s.store.TouchAPIKeyLastUsed(ctx, authRecord.Key.ID, s.now().UTC())
+	// Avoid blocking request auth on SQLite write contention.
+	go func(keyID string, usedAt time.Time) {
+		writeCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := s.store.TouchAPIKeyLastUsed(writeCtx, keyID, usedAt); err != nil {
+			log.Printf("warn: touch API key last_used_at failed for key %s: %v", keyID, err)
+		}
+	}(authRecord.Key.ID, s.now().UTC())
 
 	return APIKeyPrincipal{
 		KeyID:         authRecord.Key.ID,

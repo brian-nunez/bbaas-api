@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/brian-nunez/bbaas-api/internal/applications"
 	"github.com/brian-nunez/bbaas-api/internal/authorization"
 	"github.com/brian-nunez/bbaas-api/internal/data"
-	"github.com/brian-nunez/bbaas-api/internal/security"
 )
 
 var (
@@ -25,6 +25,7 @@ type Service struct {
 	store         *data.Store
 	authorization *authorization.APIAuthorizer
 	publicCDPBase string
+	spawnTimeout  time.Duration
 	now           func() time.Time
 }
 
@@ -34,6 +35,7 @@ func NewService(client ManagerClient, store *data.Store, authorizer *authorizati
 		store:         store,
 		authorization: authorizer,
 		publicCDPBase: strings.TrimSpace(publicCDPBase),
+		spawnTimeout:  20 * time.Second,
 		now:           time.Now,
 	}
 }
@@ -43,18 +45,19 @@ func (s *Service) SpawnForAPIKey(ctx context.Context, principal applications.API
 		return SpawnResponse{}, ErrForbidden
 	}
 
-	spawnedBrowser, err := s.client.Spawn(ctx, request)
+	spawnCtx, cancel := context.WithTimeout(ctx, s.spawnTimeout)
+	defer cancel()
+
+	spawnedBrowser, err := s.client.Spawn(spawnCtx, request)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return SpawnResponse{}, context.DeadlineExceeded
+		}
 		return SpawnResponse{}, err
 	}
 
-	recordID, err := security.GeneratePrefixedToken("bsn", 14)
-	if err != nil {
-		return SpawnResponse{}, fmt.Errorf("generate browser session id: %w", err)
-	}
-
 	record := data.BrowserSessionRecord{
-		ID:                recordID,
+		ID:                spawnedBrowser.Browser.ID,
 		ApplicationID:     principal.ApplicationID,
 		ExternalBrowserID: spawnedBrowser.Browser.ID,
 		Status:            "RUNNING",
@@ -72,8 +75,11 @@ func (s *Service) SpawnForAPIKey(ctx context.Context, principal applications.API
 		record.SpawnedByWorkerID = &workerID
 	}
 
-	if err := s.store.CreateBrowserSession(ctx, record); err != nil {
-		return SpawnResponse{}, fmt.Errorf("persist browser session: %w", err)
+	persistCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := s.store.CreateBrowserSession(persistCtx, record); err != nil {
+		// Do not block browser spawn responses on DB lock contention.
+		log.Printf("warn: persist browser session failed for browser %s app %s: %v", record.ExternalBrowserID, record.ApplicationID, err)
 	}
 
 	spawnedBrowser.Browser = RewriteBrowserForPublicGateway(spawnedBrowser.Browser, s.publicCDPBase)

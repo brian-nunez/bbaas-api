@@ -31,8 +31,9 @@ services:
     environment:
       PORT: "${PORT:-8080}"
       DB_DRIVER: "${DB_DRIVER:-sqlite}"
-      DB_DSN: "${DB_DSN:-file:/data/bbaas.db?_pragma=foreign_keys(1)}"
+      DB_DSN: "${DB_DSN:-file:/data/bbaas.db?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)}"
       CDP_MANAGER_BASE_URL: "${CDP_MANAGER_BASE_URL:-http://127.0.0.1:8081}"
+      CDP_MANAGER_HTTP_TIMEOUT: "${CDP_MANAGER_HTTP_TIMEOUT:-60s}"
       CDP_PUBLIC_BASE_URL: "${CDP_PUBLIC_BASE_URL:-}"
     volumes:
       - ./api-data:/data

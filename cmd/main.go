@@ -16,6 +16,7 @@ func main() {
 	port := getenvOrDefault("PORT", "8080")
 	cdpManagerBaseURL := getenvOrDefault("CDP_MANAGER_BASE_URL", "http://127.0.0.1:8081")
 	cdpPublicBaseURL := getenvOrDefault("CDP_PUBLIC_BASE_URL", "")
+	cdpManagerTimeout := getenvDurationOrDefault("CDP_MANAGER_HTTP_TIMEOUT", 60*time.Second)
 	dbDriver := getenvOrDefault("DB_DRIVER", "sqlite")
 	dbDSN := getenvOrDefault("DB_DSN", "")
 
@@ -25,6 +26,7 @@ func main() {
 		},
 		CDPManagerBaseURL: cdpManagerBaseURL,
 		CDPPublicBaseURL:  cdpPublicBaseURL,
+		CDPManagerTimeout: cdpManagerTimeout,
 		DBDriver:          dbDriver,
 		DBDSN:             dbDSN,
 	})
@@ -62,4 +64,19 @@ func getenvOrDefault(key string, fallback string) string {
 	}
 
 	return value
+}
+
+func getenvDurationOrDefault(key string, fallback time.Duration) time.Duration {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		log.Printf("invalid duration for %s=%q, using default %s", key, value, fallback)
+		return fallback
+	}
+
+	return parsed
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/brian-nunez/bbaas-api/internal/applications"
 	"github.com/brian-nunez/bbaas-api/internal/authorization"
@@ -24,6 +26,7 @@ type BootstrapConfig struct {
 	StaticDirectories map[string]string
 	CDPManagerBaseURL string
 	CDPPublicBaseURL  string
+	CDPManagerTimeout time.Duration
 	DBDriver          string
 	DBDSN             string
 }
@@ -70,7 +73,14 @@ func Bootstrap(config BootstrapConfig) (Server, error) {
 	usersService := users.NewService(store)
 	webAuthorizer := authorization.NewWebAuthorizer()
 	applicationsService := applications.NewService(store, webAuthorizer)
-	browserManagerClient, err := browsers.NewHTTPManagerClient(config.CDPManagerBaseURL, nil)
+	managerTimeout := config.CDPManagerTimeout
+	if managerTimeout <= 0 {
+		managerTimeout = 60 * time.Second
+	}
+	managerHTTPClient := &http.Client{
+		Timeout: managerTimeout,
+	}
+	browserManagerClient, err := browsers.NewHTTPManagerClient(config.CDPManagerBaseURL, managerHTTPClient)
 	if err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("create CDP manager client: %w", err)

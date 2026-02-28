@@ -64,16 +64,22 @@ func NewHTTPManagerClient(baseURL string, httpClient *http.Client) (*HTTPManager
 }
 
 func (c *HTTPManagerClient) Spawn(ctx context.Context, request SpawnRequest) (SpawnResponse, error) {
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return SpawnResponse{}, fmt.Errorf("marshal spawn request: %w", err)
+	var body io.Reader
+	if !isEmptySpawnRequest(request) {
+		payload, err := json.Marshal(request)
+		if err != nil {
+			return SpawnResponse{}, fmt.Errorf("marshal spawn request: %w", err)
+		}
+		body = bytes.NewReader(payload)
 	}
 
-	httpRequest, err := c.newRequest(ctx, http.MethodPost, "/api/v1/browsers", bytes.NewReader(payload))
+	httpRequest, err := c.newRequest(ctx, http.MethodPost, "/api/v1/browsers", body)
 	if err != nil {
 		return SpawnResponse{}, err
 	}
-	httpRequest.Header.Set("Content-Type", "application/json")
+	if body != nil {
+		httpRequest.Header.Set("Content-Type", "application/json")
+	}
 
 	var response SpawnResponse
 	if err := c.do(httpRequest, http.StatusCreated, &response); err != nil {
@@ -81,6 +87,10 @@ func (c *HTTPManagerClient) Spawn(ctx context.Context, request SpawnRequest) (Sp
 	}
 
 	return response, nil
+}
+
+func isEmptySpawnRequest(request SpawnRequest) bool {
+	return request.Headless == nil && request.IdleTimeoutSeconds == nil
 }
 
 func (c *HTTPManagerClient) List(ctx context.Context) ([]Browser, error) {
