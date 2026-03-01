@@ -10,33 +10,32 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-func getCDPURLFromService(ctx context.Context) string {
+func getClient() *bbaas.Client {
 	apiKey := os.Getenv("BBAAS_API_KEY")
 	if apiKey == "" {
 		panic("set BBAAS_API_KEY before running this command")
 	}
 
 	client, err := bbaas.NewClient(
-		"http://localhost:8080",
+		"https://bbaas.b8z.me",
 		bbaas.WithAPIToken(apiKey),
 	)
 	if err != nil {
 		panic(err)
 	}
 
-	spawned, err := client.SpawnBrowser(ctx, bbaas.SpawnBrowserRequest{})
+	return client
+}
+
+func main() {
+	client := getClient()
+
+	spawned, err := client.SpawnBrowser(context.Background(), bbaas.SpawnBrowserRequest{})
 	if err != nil {
 		panic(err)
 	}
 
-	return spawned.Browser.CDPURL
-}
-
-func main() {
-	cdpURL := os.Getenv("BBAAS_CDP_URL")
-	if cdpURL == "" {
-		cdpURL = getCDPURLFromService(context.Background())
-	}
+	cdpURL := spawned.Browser.CDPURL
 
 	pw, err := playwright.Run()
 	if err != nil {
@@ -58,7 +57,7 @@ func main() {
 		log.Fatalf("could not set viewport size: %v", err)
 	}
 
-	if _, err = page.Goto("https://www.google.com"); err != nil {
+	if _, err = page.Goto("https://www.b8z.me"); err != nil {
 		log.Fatalf("could not goto: %v", err)
 	}
 
@@ -79,10 +78,10 @@ func main() {
 		fmt.Printf("%d: %s\n", i+1, title)
 	}
 
-	// err = client.CloseBrowser(context.Background(), spawned.Browser.ID)
-	// if err != nil {
-	// 	log.Fatalf("could not close browser: %v", err)
-	// }
-	//
-	// fmt.Println("Browser closed successfully")
+	err = client.CloseBrowser(context.Background(), spawned.Browser.ID)
+	if err != nil {
+		log.Fatalf("could not close browser: %v", err)
+	}
+
+	fmt.Println("Browser closed successfully")
 }
