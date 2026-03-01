@@ -14,7 +14,7 @@ This includes a browser-management API layer that sits in front of your existing
 
 - `PORT` (default `8080`)
 - `CDP_MANAGER_BASE_URL` (default `http://127.0.0.1:8081`)
-- `CDP_PUBLIC_BASE_URL` (default empty). When empty, API returns manager-provided URLs (local default usually `127.0.0.1:<port>`). When set, API returns `cdpUrl`/`cdpHttpUrl` as `<base>/<cdp-port>` (example: `https://bbaas-manager.b8z.me/browsers/50100`)
+- `CDP_PUBLIC_BASE_URL` (default empty). When empty, API returns manager-provided URLs (local default usually `127.0.0.1:<port>`). When set, API rewrites CDP endpoints to your public host and encodes the browser port into the URL path (example: `wss://bbaas-manager.b8z.me/50100/devtools/browser/...`).
 - `DB_DRIVER` (default `sqlite`, supported: `sqlite`, `postgres`)
 - `DB_DSN` (default for sqlite: `file:bbaas.db?_pragma=foreign_keys(1)`)
 
@@ -36,10 +36,11 @@ docker compose -f compose.prod.yml up -d
 
 Important networking behavior:
 - `cdp-manager` runs in `network_mode: host` and binds CDP ports to `127.0.0.1` by default.
+- `cdp-manager` allocates CDP ports from a dedicated range (default `20000-29999`) so reverse proxies can forward that range without consuming OS ephemeral client ports.
 - This allows dynamic browser ports to be reachable by local processes and private reverse proxies, without publicly exposing the manager directly.
 - API URL rewriting is controlled by `CDP_PUBLIC_BASE_URL`:
   - local default: empty (returns raw manager URL, typically `http://127.0.0.1:<port>`)
-  - prod default: `https://bbaas-manager.b8z.me/browsers` (returns `<base>/<port>`)
+  - prod default: `https://bbaas-manager.b8z.me` (returns path-rewritten CDP URLs such as `wss://bbaas-manager.b8z.me/50100/devtools/browser/...`)
 
 ## API Endpoints
 

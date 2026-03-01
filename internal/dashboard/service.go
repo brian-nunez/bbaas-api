@@ -107,10 +107,18 @@ func (s *Service) BuildViewData(ctx context.Context, viewer users.User) (ViewDat
 			ClosedAt:          browserRecord.ClosedAt,
 			ExpiresAt:         browserRecord.ExpiresAt,
 		}
-		publicURL := browsers.PublicCDPURLFromRaw(browserRecord.CDPHTTPURL, browserRecord.CDPURL, s.publicCDPBase)
-		if publicURL != "" {
-			browser.CDPHTTPURL = publicURL
-			browser.CDPURL = publicURL
+		publicBrowser := browsers.RewriteBrowserForPublicGateway(
+			browsers.Browser{
+				CDPHTTPURL: browserRecord.CDPHTTPURL,
+				CDPURL:     browserRecord.CDPURL,
+			},
+			s.publicCDPBase,
+		)
+		if publicBrowser.CDPHTTPURL != "" {
+			browser.CDPHTTPURL = publicBrowser.CDPHTTPURL
+		}
+		if publicBrowser.CDPURL != "" {
+			browser.CDPURL = publicBrowser.CDPURL
 		}
 		if browser.Status == "RUNNING" {
 			runningBrowsers = append(runningBrowsers, browser)

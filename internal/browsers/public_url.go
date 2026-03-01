@@ -1,79 +1,89 @@
 package browsers
 
 import (
-	"net"
 	"net/url"
 	"path"
 	"strings"
 )
 
-// PublicCDPURLFromBrowser maps a browser's internal CDP endpoint to a public gateway URL.
+// PublicCDPURLFromBrowser maps a browser CDP endpoint to a public base URL while preserving
+// the original endpoint path and dynamic browser port.
 // Example:
 //
-//	raw:  http://127.0.0.1:50100
-//	base: https://bbaas-manager.b8z.me/browsers
-//	out:  https://bbaas-manager.b8z.me/browsers/50100
+//	raw:  ws://127.0.0.1:50100/devtools/browser/abc
+//	base: https://bbaas-manager.b8z.me
+//	out:  wss://bbaas-manager.b8z.me/50100/devtools/browser/abc
 func PublicCDPURLFromBrowser(browser Browser, publicBaseURL string) string {
-	return PublicCDPURLFromRaw(browser.CDPHTTPURL, browser.CDPURL, publicBaseURL)
+	raw := strings.TrimSpace(browser.CDPURL)
+	if raw == "" {
+		raw = browser.CDPHTTPURL
+	}
+	return PublicCDPURLFromRaw(raw, publicBaseURL)
 }
 
-func PublicCDPURLFromRaw(rawHTTPURL string, rawWSURL string, publicBaseURL string) string {
+func PublicCDPURLFromRaw(rawURL string, publicBaseURL string) string {
+	trimmedRaw := strings.TrimSpace(rawURL)
 	normalizedBase := strings.TrimSpace(publicBaseURL)
-	if normalizedBase == "" {
-		return strings.TrimSpace(rawHTTPURL)
+	if normalizedBase == "" || trimmedRaw == "" {
+		return trimmedRaw
 	}
 
 	base, err := url.Parse(normalizedBase)
 	if err != nil || base.Scheme == "" || base.Host == "" {
-		return strings.TrimSpace(rawHTTPURL)
+		return trimmedRaw
 	}
 
-	port := extractPort(rawHTTPURL)
-	if port == "" {
-		port = extractPort(rawWSURL)
-	}
-	if port == "" {
-		return strings.TrimSpace(rawHTTPURL)
+	parsedRaw, err := url.Parse(trimmedRaw)
+	if err != nil || parsedRaw.Host == "" {
+		return trimmedRaw
 	}
 
-	base.Path = path.Join("/", strings.TrimSpace(base.Path), port)
-	base.RawPath = ""
-	return base.String()
+	port := parsedRaw.Port()
+	if port == "" || base.Host == "" {
+		return trimmedRaw
+	}
+
+	rewrittenPath := path.Join("/", strings.Trim(base.Path, "/"), port)
+	rawPath := strings.Trim(parsedRaw.Path, "/")
+	if rawPath != "" {
+		rewrittenPath = path.Join(rewrittenPath, rawPath)
+	}
+
+	rewritten := url.URL{
+		Scheme:   mapScheme(parsedRaw.Scheme, base.Scheme),
+		Host:     base.Host,
+		Path:     rewrittenPath,
+		RawQuery: parsedRaw.RawQuery,
+		Fragment: parsedRaw.Fragment,
+	}
+
+	return rewritten.String()
 }
 
 func RewriteBrowserForPublicGateway(browser Browser, publicBaseURL string) Browser {
-	publicURL := PublicCDPURLFromBrowser(browser, publicBaseURL)
-	if publicURL == "" {
-		return browser
-	}
-
-	browser.CDPHTTPURL = publicURL
-	browser.CDPURL = publicURL
+	browser.CDPHTTPURL = PublicCDPURLFromRaw(browser.CDPHTTPURL, publicBaseURL)
+	browser.CDPURL = PublicCDPURLFromRaw(browser.CDPURL, publicBaseURL)
 	return browser
 }
 
-func extractPort(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return ""
-	}
-
-	parsed, err := url.Parse(trimmed)
-	if err == nil && parsed.Port() != "" {
-		return parsed.Port()
-	}
-
-	if !strings.Contains(trimmed, "://") {
-		parsedWithScheme, parseErr := url.Parse("http://" + trimmed)
-		if parseErr == nil && parsedWithScheme.Port() != "" {
-			return parsedWithScheme.Port()
+func mapScheme(rawScheme string, baseScheme string) string {
+	switch strings.ToLower(rawScheme) {
+	case "ws", "wss":
+		switch strings.ToLower(baseScheme) {
+		case "https", "wss":
+			return "wss"
+		default:
+			return "ws"
 		}
+	case "http", "https":
+		switch strings.ToLower(baseScheme) {
+		case "https", "wss":
+			return "https"
+		default:
+			return "http"
+		}
+	default:
+		// Fall back to base scheme for unknown/rawless schemes.
+		return strings.ToLower(baseScheme)
 	}
-
-	if host, _, splitErr := net.SplitHostPort(trimmed); splitErr == nil && host != "" {
-		_, port, _ := net.SplitHostPort(trimmed)
-		return port
-	}
-
-	return ""
 }

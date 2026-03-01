@@ -8,7 +8,9 @@ services:
     environment:
       PORT: "${CDP_MANAGER_PORT:-8081}"
       CDP_BIND_HOST: "${CDP_BIND_HOST:-127.0.0.1}"
-      CDP_PUBLIC_HOST: "${CDP_PUBLIC_HOST:-127.0.0.1}"
+      CDP_PUBLIC_HOST: "${CDP_PUBLIC_HOST:-bbaas-manager.b8z.me}"
+      CDP_PORT_MIN: "${CDP_PORT_MIN:-20000}"
+      CDP_PORT_MAX: "${CDP_PORT_MAX:-29999}"
       PLAYWRIGHT_HEADLESS: "${PLAYWRIGHT_HEADLESS:-true}"
       BROWSER_IDLE_TIMEOUT: "${BROWSER_IDLE_TIMEOUT:-1m}"
       BROWSER_CLEANUP_INTERVAL: "${BROWSER_CLEANUP_INTERVAL:-5s}"
@@ -33,6 +35,16 @@ services:
       DB_DRIVER: "${DB_DRIVER:-sqlite}"
       DB_DSN: "${DB_DSN:-file:/data/bbaas.db?_pragma=foreign_keys(1)}"
       CDP_MANAGER_BASE_URL: "${CDP_MANAGER_BASE_URL:-http://127.0.0.1:8081}"
-      CDP_PUBLIC_BASE_URL: "${CDP_PUBLIC_BASE_URL:-}"
+      CDP_PUBLIC_BASE_URL: "${CDP_PUBLIC_BASE_URL:-https://bbaas-manager.b8z.me}"
     volumes:
       - ./api-data:/data
+
+  bbaas-cdp-proxy:
+    image: nginx:1.27
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      bbaas-cdp-manager:
+        condition: service_started
+    volumes:
+      - ./nginx/cdp-machine-nginx.conf:/etc/nginx/nginx.conf:ro
