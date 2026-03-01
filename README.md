@@ -1,7 +1,7 @@
 
 # Browser API Layer (BBAAS)
 
-This includes a browser-management API layer that sits in front of your existing CDP manager service.
+This includes a browser-management API layer that sits in front of my existing [CDP manager service](https://github.com/brian-nunez/bbaas-cdp-manager).
 
 - User registration/login with secure session cookies
 - Dashboard for application registration and API key management
